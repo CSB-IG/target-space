@@ -1,11 +1,5 @@
 import argparse
 import csv
-from scipy.cluster.hierarchy import dendrogram
-from scipy.cluster.hierarchy import linkage
-import numpy as np
-import matplotlib
-matplotlib.use('svg')
-import matplotlib.pyplot as plt
 
 
 from pprint import pprint
@@ -16,75 +10,39 @@ def jaccard_index(first, *others):
 
 
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('tablota', type=argparse.FileType('r'))
+parser.add_argument('--input', type=argparse.FileType('r'), required=True)
+parser.add_argument('--output', type=argparse.FileType('w'), required=True)
 args = parser.parse_args()
 
 
-reader = csv.reader(args.tablota, delimiter=' ')
+reader = csv.reader(args.input, delimiter=' ')
 header = ['gen'] + reader.next()
 
 # create dict of genes and their pathways
 pw = {}
 for r in reader:
-    gen = r[0]
+    gen     = r[0]
     pw[gen] = set()
     for i in range(len(r)):
+        if i > 0 and i < 5:
+            exp = "%s_%s" % (header[i],r[1])
+            pw[gen].add( exp )
         if i > 5 and int(r[i]):
             pw[gen].add(header[i])
 
+genes = sorted(pw.keys())
 
-
-genes = pw.keys()
-
-jindexes = {}
+# create a rectangular matrix
+rows = [ ['gene'] + genes,]
 for gen1 in genes:
+    row = [gen1, ]
     for gen2 in genes:
-        if len(pw[gen1]) and len(pw[gen2]):            
-            jindexes[(gen1, gen2)] = jaccard_index(pw[gen1],pw[gen2])
+        row.append(jaccard_index(pw[gen1],pw[gen2]))
+    rows.append(row)
 
 
+# write matrix to output file
+writer = csv.writer( args.output, delimiter="\t")
+for row in rows:
+    writer.writerow(row)
 
-
-
-
-
-# count intersections, place them in a table (rows are lists of cols)
-
-rows = []
-for i in sorted(genes):
-    col = []
-    for j in sorted(genes):
-        if (i,j) in jindexes:
-            col.append(jindexes[(i,j)])
-        else:
-            col.append(0)
-    rows.append(col)
-rows = np.array( rows )
-
-
-algorythms = [ 'average',
-               'complete',
-               'ward',
-               'centroid',
-               'single',
-               'weighted',]
-
-
-for algorythm in algorythms:
-        # plot dendrograms
-        fig = plt.figure(figsize=(15,40))
-
-
-        fig.add_subplot()
-        linkage_matrix = linkage(rows, algorythm)
-
-        a = dendrogram(linkage_matrix,
-                       color_threshold=1,
-                       labels=sorted(genes),
-                       show_leaf_counts=False,
-                       leaf_font_size=5,
-                       leaf_rotation=0.0,
-                       orientation='left',
-               )
-        plt.savefig('dendrogram_%s.svg' % algorythm)
-        plt.close()
