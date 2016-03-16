@@ -24,13 +24,17 @@ for r in reader:
     gen     = r[0]
     pw[gen] = set()
     for i in range(len(r)):
+        # fields 1 thru 4 are cancer subtypes
         if i > 0 and i < 5:
             exp = "%s_%s" % (header[i],r[1])
             pw[gen].add( exp )
+        # fields 6 onwards are pathways
         if i > 5 and int(r[i]):
             pw[gen].add(header[i])
 
 genes = sorted(pw.keys())
+
+
 
 # create a rectangular matrix
 rows = [ ['gene'] + genes,]
@@ -40,6 +44,7 @@ for gen1 in genes:
         row.append(jaccard_index(pw[gen1],pw[gen2]))
     rows.append(row)
 
+    
 
 # write matrix to output file
 writer = csv.writer( args.output, delimiter="\t")
