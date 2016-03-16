@@ -1,7 +1,14 @@
 import argparse
-from pprint import pprint
 import csv
+from scipy.cluster.hierarchy import dendrogram
+from scipy.cluster.hierarchy import linkage
+import numpy as np
+import matplotlib
+matplotlib.use('svg')
+import matplotlib.pyplot as plt
 
+
+from pprint import pprint
 
 # computes jacard index for two or mor sets
 def jaccard_index(first, *others):
@@ -36,4 +43,48 @@ for gen1 in genes:
             jindexes[(gen1, gen2)] = jaccard_index(pw[gen1],pw[gen2])
 
 
-pprint(jindexes)
+
+
+
+
+
+# count intersections, place them in a table (rows are lists of cols)
+
+rows = []
+for i in sorted(genes):
+    col = []
+    for j in sorted(genes):
+        if (i,j) in jindexes:
+            col.append(jindexes[(i,j)])
+        else:
+            col.append(0)
+    rows.append(col)
+rows = np.array( rows )
+
+
+algorythms = [ 'average',
+               'complete',
+               'ward',
+               'centroid',
+               'single',
+               'weighted',]
+
+
+for algorythm in algorythms:
+        # plot dendrograms
+        fig = plt.figure(figsize=(15,40))
+
+
+        fig.add_subplot()
+        linkage_matrix = linkage(rows, algorythm)
+
+        a = dendrogram(linkage_matrix,
+                       color_threshold=1,
+                       labels=sorted(genes),
+                       show_leaf_counts=False,
+                       leaf_font_size=5,
+                       leaf_rotation=0.0,
+                       orientation='left',
+               )
+        plt.savefig('dendrogram_%s.svg' % algorythm)
+        plt.close()
